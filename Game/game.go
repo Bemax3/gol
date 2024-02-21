@@ -2,43 +2,79 @@ package game
 
 import (
 	"math/rand"
+
+	settings "github.com/Bemax3/gol/Settings"
 )
 
 type Game struct {
-	board [20][20]int
+	Running   bool
+	Delay     int
+	Cells     [settings.Dimension][settings.Dimension]int
+	tempCells [settings.Dimension][settings.Dimension]int
 }
 
-func NewGame() *Game {
-	return &Game{}
+func NewGame(Delay int) *Game {
+	return &Game{
+		Running:   true,
+		Delay:     Delay,
+		Cells:     [settings.Dimension][settings.Dimension]int{},
+		tempCells: [settings.Dimension][settings.Dimension]int{},
+	}
 }
 
 func (g *Game) FillRandomly() {
-	for i := 0; i < 20; i++ {
-		for j := 0; j < 20; j++ {
-			g.board[i][j] = rand.Intn(2)
+	for i := 0; i < settings.Dimension; i++ {
+		for j := 0; j < settings.Dimension; j++ {
+			g.Cells[i][j] = rand.Intn(2)
 		}
 	}
-}
-func (g *Game) FillWithGlider() {
-	g.board[0][1] = 1
-	g.board[1][2] = 1
-	g.board[2][0] = 1
-	g.board[2][1] = 1
-	g.board[2][2] = 1
 }
 
-func (g *Game) Display() {
-	for i := 0; i < 20; i++ {
-		for j := 0; j < 20; j++ {
-			if g.board[i][j] == 0 {
-				print(" ")
-			} else {
-				print("X")
-			}
-			print(" ")
-		}
-		println()
-	}
+func (g *Game) FillWithGliderGun() {
+	g.Cells[1][5] = 1
+	g.Cells[1][6] = 1
+	g.Cells[2][5] = 1
+	g.Cells[2][6] = 1
+	g.Cells[11][5] = 1
+	g.Cells[11][6] = 1
+	g.Cells[11][7] = 1
+	g.Cells[12][4] = 1
+	g.Cells[12][8] = 1
+	g.Cells[13][3] = 1
+	g.Cells[13][9] = 1
+	g.Cells[14][3] = 1
+	g.Cells[14][9] = 1
+	g.Cells[15][6] = 1
+	g.Cells[16][4] = 1
+	g.Cells[16][8] = 1
+	g.Cells[17][5] = 1
+	g.Cells[17][6] = 1
+	g.Cells[17][7] = 1
+	g.Cells[18][6] = 1
+	g.Cells[21][3] = 1
+	g.Cells[21][4] = 1
+	g.Cells[21][5] = 1
+	g.Cells[22][3] = 1
+	g.Cells[22][4] = 1
+	g.Cells[22][5] = 1
+	g.Cells[23][2] = 1
+	g.Cells[23][6] = 1
+	g.Cells[25][1] = 1
+	g.Cells[25][2] = 1
+	g.Cells[25][6] = 1
+	g.Cells[25][7] = 1
+	g.Cells[35][3] = 1
+	g.Cells[35][4] = 1
+	g.Cells[36][3] = 1
+	g.Cells[36][4] = 1
+}
+
+func (g *Game) FillWithGlider() {
+	g.Cells[0][1] = 1
+	g.Cells[1][2] = 1
+	g.Cells[2][0] = 1
+	g.Cells[2][1] = 1
+	g.Cells[2][2] = 1
 }
 
 func (g *Game) countAliveNeighbors(x, y int) int {
@@ -48,29 +84,28 @@ func (g *Game) countAliveNeighbors(x, y int) int {
 			if i == 0 && j == 0 {
 				continue
 			}
-			if x+i < 0 || x+i > 19 || y+j < 0 || y+j > 19 {
+			if x+i < 0 || x+i >= settings.Dimension || y+j < 0 || y+j >= settings.Dimension {
 				continue
 			}
-			alive += g.board[x+i][y+j]
+			alive += g.Cells[x+i][y+j]
 		}
 	}
 	return alive
 }
 
 func (g *Game) NextGeneration() {
-	next := [20][20]int{}
-	for i := 0; i < 20; i++ {
-		for j := 0; j < 20; j++ {
-			alive := g.board[i][j]
+	for i := 0; i < settings.Dimension; i++ {
+		for j := 0; j < settings.Dimension; j++ {
+			alive := g.Cells[i][j]
 			neighbors := g.countAliveNeighbors(i, j)
 			if alive == 1 && (neighbors < 2 || neighbors > 3) {
-				next[i][j] = 0
+				g.tempCells[i][j] = 0
 			} else if alive == 0 && neighbors == 3 {
-				next[i][j] = 1
+				g.tempCells[i][j] = 1
 			} else {
-				next[i][j] = alive
+				g.tempCells[i][j] = alive
 			}
 		}
 	}
-	g.board = next
+	g.Cells = g.tempCells
 }
