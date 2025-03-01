@@ -13,13 +13,27 @@ import (
 type Board struct {
 	Container *fyne.Container
 	Game      *game.Game
+	Cells     [][]*canvas.Rectangle
 }
 
 func NewBoard(g *game.Game, c *fyne.Container) *Board {
-	return &Board{
+	b := &Board{
 		Container: c,
 		Game:      g,
+		Cells:     make([][]*canvas.Rectangle, settings.Dimension),
 	}
+
+	for i := 0; i < settings.Dimension; i++ {
+		b.Cells[i] = make([]*canvas.Rectangle, settings.Dimension)
+		for j := 0; j < settings.Dimension; j++ {
+			rect := canvas.NewRectangle(color.Black)
+			rect.Move(fyne.NewPos(float32(i*settings.UnitSize), float32(j*settings.UnitSize)))
+			rect.Resize(fyne.NewSize(settings.UnitSize-1, settings.UnitSize-1))
+			b.Cells[i][j] = rect
+			c.Add(rect)
+		}
+	}
+	return b
 }
 
 func (b *Board) DrawLines() {
@@ -33,25 +47,6 @@ func (b *Board) DrawLines() {
 		line.Position1 = fyne.NewPos(0, float32(i*settings.UnitSize))
 		line.Position2 = fyne.NewPos(settings.BoardWidth, float32(i*settings.UnitSize))
 		b.Container.Add(line)
-	}
-}
-
-func (b *Board) DrawCells() {
-	var rect *canvas.Rectangle
-	for i := 0; i < settings.Dimension; i++ {
-		for j := 0; j < settings.Dimension; j++ {
-			if b.Game.Cells[i][j] == 1 {
-				rect = canvas.NewRectangle(color.White)
-				rect.Move(fyne.NewPos(float32(i*settings.UnitSize), float32(j*settings.UnitSize)))
-				rect.Resize(fyne.NewSize(settings.UnitSize-1, settings.UnitSize-1))
-				b.Container.Add(rect)
-			} else {
-				rect = canvas.NewRectangle(color.Black)
-				rect.Move(fyne.NewPos(float32(i*settings.UnitSize), float32(j*settings.UnitSize)))
-				rect.Resize(fyne.NewSize(settings.UnitSize-1, settings.UnitSize-1))
-				b.Container.Add(rect)
-			}
-		}
 	}
 }
 
@@ -108,8 +103,15 @@ func (b *Board) Reset() {
 }
 
 func (b *Board) Repaint() {
-	b.Container.RemoveAll()
-	// b.DrawLines()
-	b.DrawCells()
+	for i := 0; i < settings.Dimension; i++ {
+		for j := 0; j < settings.Dimension; j++ {
+			if b.Game.Cells[i][j] == 1 {
+				b.Cells[i][j].FillColor = color.White
+			} else {
+				b.Cells[i][j].FillColor = color.Black
+			}
+			b.Cells[i][j].Refresh()
+		}
+	}
 	b.Container.Refresh()
 }

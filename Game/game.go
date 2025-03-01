@@ -2,29 +2,36 @@ package game
 
 import (
 	"math/rand"
+	"sync"
 
-	settings "github.com/Bemax3/gol/Settings"
+	s "github.com/Bemax3/gol/Settings"
 )
 
 type Game struct {
 	Running   bool
 	Delay     int
-	Cells     [settings.Dimension][settings.Dimension]int
-	tempCells [settings.Dimension][settings.Dimension]int
+	Cells     [][]int
+	tempCells [][]int
 }
 
 func NewGame(Delay int) *Game {
+	cells := make([][]int, s.Dimension)
+	tempCells := make([][]int, s.Dimension)
+	for i := 0; i < s.Dimension; i++ {
+		cells[i] = make([]int, s.Dimension)
+		tempCells[i] = make([]int, s.Dimension)
+	}
 	return &Game{
 		Running:   true,
 		Delay:     Delay,
-		Cells:     [settings.Dimension][settings.Dimension]int{},
-		tempCells: [settings.Dimension][settings.Dimension]int{},
+		Cells:     cells,
+		tempCells: tempCells,
 	}
 }
 
 func (g *Game) FillRandomly() {
-	for i := 0; i < settings.Dimension; i++ {
-		for j := 0; j < settings.Dimension; j++ {
+	for i := 0; i < s.Dimension; i++ {
+		for j := 0; j < s.Dimension; j++ {
 			g.Cells[i][j] = rand.Intn(2)
 		}
 	}
@@ -84,7 +91,7 @@ func (g *Game) countAliveNeighbors(x, y int) int {
 			if i == 0 && j == 0 {
 				continue
 			}
-			if x+i < 0 || x+i >= settings.Dimension || y+j < 0 || y+j >= settings.Dimension {
+			if x+i < 0 || x+i >= s.Dimension || y+j < 0 || y+j >= s.Dimension {
 				continue
 			}
 			alive += g.Cells[x+i][y+j]
@@ -94,18 +101,32 @@ func (g *Game) countAliveNeighbors(x, y int) int {
 }
 
 func (g *Game) NextGeneration() {
-	for i := 0; i < settings.Dimension; i++ {
-		for j := 0; j < settings.Dimension; j++ {
-			alive := g.Cells[i][j]
-			neighbors := g.countAliveNeighbors(i, j)
-			if alive == 1 && (neighbors < 2 || neighbors > 3) {
-				g.tempCells[i][j] = 0
-			} else if alive == 0 && neighbors == 3 {
-				g.tempCells[i][j] = 1
-			} else {
-				g.tempCells[i][j] = alive
+	var wg sync.WaitGroup
+	wg.Add(s.Dimension)
+
+	for i := 0; i < s.Dimension; i++ {
+		go func(i int) {
+			defer wg.Done()
+			for j := 0; j < s.Dimension; j++ {
+				neighbors := g.countAliveNeighbors(i, j)
+				if g.Cells[i][j] == 1 {
+					if neighbors < 2 || neighbors > 3 {
+						g.tempCells[i][j] = 0
+					} else {
+						g.tempCells[i][j] = 1
+					}
+				} else {
+					if neighbors == 3 {
+						g.tempCells[i][j] = 1
+					} else {
+						g.tempCells[i][j] = 0
+					}
+				}
 			}
-		}
+		}(i)
 	}
-	g.Cells = g.tempCells
+
+	wg.Wait()
+
+	g.Cells, g.tempCells = g.tempCells, g.Cells
 }
